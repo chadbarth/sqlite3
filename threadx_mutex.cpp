@@ -2,11 +2,13 @@
 //
 // Copyright (c) 2008 Vorne Industries
 //
-// $Id: threadx_mutex.cpp 1.1 2008/04/10 18:14:04Z phowell Exp $
+// $Id: threadx_mutex.cpp 1.2 2008/12/02 20:56:36Z phowell Exp $
 //
 // VERSION HISTORY
 // ---------------
 // $Log: threadx_mutex.cpp $
+// Revision 1.2  2008/12/02 20:56:36Z  phowell
+// Fix static initialization problems.
 // Revision 1.1  2008/04/10 18:14:04Z  phowell
 // Initial revision
 //
@@ -71,10 +73,14 @@ void sqlite3_threadx_mutex_initialize()
     
     tx_mutex_create(&mutex_array_mutex, "sqlite3 global", TX_INHERIT);
 
-    for (int i = SQLITE_MUTEX_STATIC_MASTER; i <= SQLITE_MUTEX_STATIC_LRU; ++i)
+    for (int i = 0; i < sizeof(mutex_array) / sizeof(*mutex_array); ++i)
     {
-        mutex_array[i].mutex_id = i;
-        tx_mutex_create(&mutex_array[i].mutex, "", TX_INHERIT);
+        mutex_array[i] = Mutex_Descriptor();
+        if (i >= SQLITE_MUTEX_STATIC_MASTER && i <= SQLITE_MUTEX_STATIC_LRU)
+        {
+            mutex_array[i].mutex_id = i;
+            tx_mutex_create(&mutex_array[i].mutex, "", TX_INHERIT);
+        }
     }
 
     mutex_array_prepared = true;    
