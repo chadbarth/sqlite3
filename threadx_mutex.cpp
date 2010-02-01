@@ -2,11 +2,13 @@
 //
 // Copyright (c) 2008 Vorne Industries
 //
-// $Id: threadx_mutex.cpp 1.3 2009/03/13 17:19:45Z phowell Exp $
+// $Id: threadx_mutex.cpp 1.4 2009/10/28 20:28:32Z phowell Exp $
 //
 // VERSION HISTORY
 // ---------------
 // $Log: threadx_mutex.cpp $
+// Revision 1.4  2009/10/28 20:28:32Z  phowell
+// Changes from 3.5.3 to 3.6.19 required port changes.
 // Revision 1.3  2009/03/13 17:19:45Z  phowell
 // Fix static-construction-ordering problem.
 // Revision 1.2  2008/12/02 20:56:36Z  phowell
@@ -20,7 +22,7 @@
 ///
 /// OVERVIEW
 ///
-/// This file defines all the necessary sqlite3_mutex_* functions to implement an application-
+/// This file defines all the necessary threadx_mutex_* functions to implement an application-
 /// defined set of mutices for SQLite.  Most of the documentation in this file has been taken from
 /// the sqlite3.h header and reproduced.
 ///
@@ -53,53 +55,53 @@ struct Mutex_Descriptor
     uint8_t mutex_id;
 };
 
-static Mutex_Descriptor mutex_array[10] = { 0 };
+static Mutex_Descriptor mutex_array[20] = { 0 };
 enum { MUTEX_ARRAY_LENGTH = sizeof(mutex_array) / sizeof(*mutex_array) };
 
 static TX_MUTEX mutex_array_mutex;
-static bool mutex_array_prepared = false;
+
 
 ///-------------------------------------------------------------------------------------------------
 ///
 /// One-time preparation for the array of mutices defined above, and that array's controlling mutex.
 /// After this function is called, the array is guarateed to be ready for use, with all static
-/// mutices created.
-///
-/// NOTES:
-///     This function MUST be completed before any other functions that use mutex_array are called;
-///         this suggests a call in initialization context.
-///
-///     This function SHOULD only be called once.  Calls after the first are a no-op.
+/// mutices created.  SQLite will call this method.
 ///
 ///-------------------------------------------------------------------------------------------------
-void sqlite3_threadx_mutex_initialize()
+static int threadx_mutex_initialize()
 {
-    if (mutex_array_prepared == true) return;
+    static bool mutex_array_prepared = false;
+    if (mutex_array_prepared == false)
+    {    
+        tx_mutex_create(&mutex_array_mutex, "sqlite3 global", TX_INHERIT);
     
-    tx_mutex_create(&mutex_array_mutex, "sqlite3 global", TX_INHERIT);
-
-    for (int i = 0; i < sizeof(mutex_array) / sizeof(*mutex_array); ++i)
-    {
-        mutex_array[i].mutex_id = Mutex_Descriptor::UNUSED_MUTEX;
-        
-        if (i >= SQLITE_MUTEX_STATIC_MASTER && i <= SQLITE_MUTEX_STATIC_LRU)
+        for (int i = 0; i < sizeof(mutex_array) / sizeof(*mutex_array); ++i)
         {
-            mutex_array[i].mutex_id = i;
-            tx_mutex_create(&mutex_array[i].mutex, "sqlite3 specific", TX_INHERIT);
+            mutex_array[i].mutex_id = Mutex_Descriptor::UNUSED_MUTEX;
+                
+            if (i >= SQLITE_MUTEX_STATIC_MASTER && i <= SQLITE_MUTEX_STATIC_LRU)
+            {
+                mutex_array[i].mutex_id = i;
+                tx_mutex_create(&mutex_array[i].mutex, "sqlite3 specific", TX_INHERIT);
+            }
         }
     }
-
-    mutex_array_prepared = true;    
+    mutex_array_prepared = true;
+    return SQLITE_OK;
 }
-        
+
+static int threadx_mutex_end()
+{
+    return SQLITE_OK;
+}
         
 ///-------------------------------------------------------------------------------------------------
 ///
-/// sqlite3_mutex_alloc
+/// threadx_mutex_alloc
 ///
-/// The sqlite3_mutex_alloc() routine allocates a new mutex and returns a pointer to it.  If it
+/// The threadx_mutex_alloc() routine allocates a new mutex and returns a pointer to it.  If it
 /// returns NULL that means that a mutex could not be allocated.  SQLite will unwind its stack and
-///  return an error.  The argument to sqlite3_mutex_alloc() is one of these integer constants:
+///  return an error.  The argument to threadx_mutex_alloc() is one of these integer constants:
 ///
 /// * SQLITE_MUTEX_FAST           (0)
 /// * SQLITE_MUTEX_RECURSIVE      (1)
@@ -109,7 +111,7 @@ void sqlite3_threadx_mutex_initialize()
 /// * SQLITE_MUTEX_STATIC_PRNG    (5)
 /// * SQLITE_MUTEX_STATIC_LRU     (6)
 ///
-/// The first two constants cause sqlite3_mutex_alloc() to create a new mutex.  The new mutex is
+/// The first two constants cause threadx_mutex_alloc() to create a new mutex.  The new mutex is
 /// recursive when SQLITE_MUTEX_RECURSIVE is used but not necessarily so when SQLITE_MUTEX_FAST is
 /// used. The mutex implementation does not need to make a distinction between
 /// SQLITE_MUTEX_RECURSIVE and SQLITE_MUTEX_FAST if it does not want to.  But SQLite will only
@@ -117,14 +119,14 @@ void sqlite3_threadx_mutex_initialize()
 /// implementation is available on the host platform, the mutex subsystem might return such a mutex
 /// in response to SQLITE_MUTEX_FAST.
 ///
-/// The other allowed parameters to sqlite3_mutex_alloc() each return a pointer to a static
+/// The other allowed parameters to threadx_mutex_alloc() each return a pointer to a static
 /// preexisting mutex.  Four static mutexes are used by the current version of SQLite.  Future
 /// versions of SQLite may add additional static mutexes.  Static mutexes are for internal use by
 /// SQLite only.  Applications that use SQLite mutexes should use only the dynamic mutexes returned
 /// by SQLITE_MUTEX_FAST or SQLITE_MUTEX_RECURSIVE.
 ///
 ///-------------------------------------------------------------------------------------------------                                          
-sqlite3_mutex *sqlite3_mutex_alloc(int mutex_id)
+static sqlite3_mutex *threadx_mutex_alloc(int mutex_id)
 {
     // We will return 0 if we can't return or allocate the correct kind of mutex.
     //
@@ -154,13 +156,13 @@ sqlite3_mutex *sqlite3_mutex_alloc(int mutex_id)
 
 ///-------------------------------------------------------------------------------------------------
 ///
-/// The sqlite3_mutex_free() routine deallocates a previously allocated dynamic mutex.  SQLite is
+/// The threadx_mutex_free() routine deallocates a previously allocated dynamic mutex.  SQLite is
 /// careful to deallocate every dynamic mutex that it allocates.  The dynamic mutexes must not be in 
 /// use when they are deallocated.  Attempting to deallocate a static mutex results in undefined
 /// behavior.  SQLite never deallocates a static mutex.
 ///
 ///-------------------------------------------------------------------------------------------------
-void sqlite3_mutex_free(sqlite3_mutex* sqlite_mutex)
+static void threadx_mutex_free(sqlite3_mutex* sqlite_mutex)
 {
     Mutex_Descriptor* mutex = reinterpret_cast<Mutex_Descriptor*>(sqlite_mutex);
     
@@ -172,7 +174,7 @@ void sqlite3_mutex_free(sqlite3_mutex* sqlite_mutex)
 
 ///-------------------------------------------------------------------------------------------------
 ///
-/// The sqlite3_mutex_enter() routine attempts to enter a mutex.  If another thread is already
+/// The threadx_mutex_enter() routine attempts to enter a mutex.  If another thread is already
 /// within the mutex, it will block.
 ///
 /// NOTES:
@@ -182,7 +184,7 @@ void sqlite3_mutex_free(sqlite3_mutex* sqlite_mutex)
 /// is undefined.   SQLite will never exhibit such behavior in its own use of mutexes.
 ///
 ///-------------------------------------------------------------------------------------------------
-void sqlite3_mutex_enter(sqlite3_mutex* sqlite_mutex) 
+static void threadx_mutex_enter(sqlite3_mutex* sqlite_mutex) 
 {
     Mutex_Descriptor* mutex = reinterpret_cast<Mutex_Descriptor*>(sqlite_mutex);
 
@@ -192,15 +194,15 @@ void sqlite3_mutex_enter(sqlite3_mutex* sqlite_mutex)
 
 ///-------------------------------------------------------------------------------------------------
 ///
-/// The sqlite3_mutex_try() routine attempts to enter a mutex.  If another thread is already within
-/// the mutex, sqlite3_mutex_try() will return SQLITE_BUSY.  This function returns SQLITE_OK
+/// The threadx_mutex_try() routine attempts to enter a mutex.  If another thread is already within
+/// the mutex, threadx_mutex_try() will return SQLITE_BUSY.  This function returns SQLITE_OK
 /// upon successful entry. 
 ///
 /// NOTES:
 /// See sqlite_mutex_enter()
 ///
 ///-------------------------------------------------------------------------------------------------
-int sqlite3_mutex_try(sqlite3_mutex* sqlite_mutex)
+static int threadx_mutex_try(sqlite3_mutex* sqlite_mutex)
 {
     Mutex_Descriptor* mutex = reinterpret_cast<Mutex_Descriptor*>(sqlite_mutex);
 
@@ -212,12 +214,12 @@ int sqlite3_mutex_try(sqlite3_mutex* sqlite_mutex)
 
 ///-------------------------------------------------------------------------------------------------
 ///
-/// The sqlite3_mutex_leave() routine exits a mutex that was previously entered by the same thread.
+/// The threadx_mutex_leave() routine exits a mutex that was previously entered by the same thread.
 /// The behavior is undefined if the mutex is not currently entered by the calling thread or is not
 /// currently allocated.  SQLite will never do either.
 ///
 ///-------------------------------------------------------------------------------------------------
-void sqlite3_mutex_leave(sqlite3_mutex* sqlite_mutex)
+static void threadx_mutex_leave(sqlite3_mutex* sqlite_mutex)
 {
     Mutex_Descriptor* mutex = reinterpret_cast<Mutex_Descriptor*>(sqlite_mutex);
     
@@ -233,8 +235,8 @@ void sqlite3_mutex_leave(sqlite3_mutex* sqlite_mutex)
     
 ///-------------------------------------------------------------------------------------------------
 ///
-/// sqlite3_mutex_held
-/// sqlite3_mutex_notheld
+/// threadx_mutex_held
+/// threadx_mutex_notheld
 ///
 /// According to API documentation, these are only ever called in the context of an assertionm, and
 /// "[t]he implementation is not required to provided versions of these routines that actually
@@ -243,14 +245,32 @@ void sqlite3_mutex_leave(sqlite3_mutex* sqlite_mutex)
 /// get spurious assertion failures", so we do.
 ///
 ///-------------------------------------------------------------------------------------------------
-int sqlite3_mutex_held(sqlite3_mutex*)
+static int threadx_mutex_held(sqlite3_mutex*)
 {
     return 1;
 }
-int sqlite3_mutex_notheld(sqlite3_mutex*)
+static int threadx_mutex_notheld(sqlite3_mutex*)
 {
     return 1;
 }
 
 
+
+
+sqlite3_mutex_methods* get_sqlite3_threadx_mutex_methods_object(void)
+{
+    static sqlite3_mutex_methods mutex_methods = {
+        threadx_mutex_initialize,
+        threadx_mutex_end,
+        threadx_mutex_alloc,
+        threadx_mutex_free,
+        threadx_mutex_enter,
+        threadx_mutex_try,
+        threadx_mutex_leave,
+        threadx_mutex_held,
+        threadx_mutex_notheld
+    };
+
+    return &mutex_methods;
+}
 

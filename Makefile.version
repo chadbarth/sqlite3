@@ -4,7 +4,7 @@
 # It is intended to be included by a larger Makefile or parsed directly by a 
 # tool.
 #
-# $Id: Makefile.version 1.5 2009/09/17 20:30:04Z phowell Exp $
+# $Id: Makefile.version 1.6 2009/10/28 20:35:49Z phowell Exp $
 #
 # This file does not have a version history, since it usually consists of 
 # 'incremented version number' or something similar.  The revision history
@@ -12,9 +12,9 @@
 # 
 ##############################################################################
 
-LONG_VERSION = 0.4.0.4
-SHORT_VERSION = 0.4.0
-RELEASE_VERSION = 00.04.00
+LONG_VERSION = 3.6.19.1
+SHORT_VERSION = 3.6.19
+RELEASE_VERSION = 03.06.19
 
 checkpoint:
 	pj label sqlite3-internal-$(LONG_VERSION)

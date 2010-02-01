@@ -2,11 +2,13 @@
 //
 // Copyright (c) 2008 Vorne Industries
 //
-// $Id: sqlite3_noop_vfs.cpp 1.2 2008/04/10 18:44:27Z phowell Exp $
+// $Id: sqlite3_noop_vfs.cpp 1.3 2009/10/28 20:28:30Z phowell Exp $
 //
 // VERSION HISTORY
 // ---------------
 // $Log: sqlite3_noop_vfs.cpp $
+// Revision 1.3  2009/10/28 20:28:30Z  phowell
+// Changes from 3.5.3 to 3.6.19 required port changes.
 // Revision 1.2  2008/04/10 18:44:27Z  phowell
 // sqlite3_noop_vfs wi.
 // Revision 1.1  2008/04/10 18:14:03Z  phowell
@@ -56,18 +58,9 @@ static int noop_file_delete(sqlite3_vfs *pVfs, const char *zName, int syncDir)
 //
 // No files exist.
 //
-static int noop_file_access(sqlite3_vfs *pVfs, const char *zName, int flags)
+static int noop_file_access(sqlite3_vfs*, const char *zName, int flags, int *pResOut)
 {
   return 0;
-}
-
-//
-// Any bogus temporary filename will do.
-//
-static int noop_file_get_tempname(sqlite3_vfs *pVfs, int nBuf, char *zBuf)
-{
-  zBuf[0] = 0;
-  return SQLITE_OK;
 }
 
 //
@@ -109,10 +102,15 @@ static int noop_file_current_time(sqlite3_vfs *pVfs, double *prNow)
 }
 
 
+static int noop_file_get_last_error(sqlite3_vfs*, int, char *)
+{
+  return 0;
+}
+
 //
 // Install this no-op VFS as the default VFS within SQLite.
 //
-extern "C" void sqlite3_noop_vfs(void)
+extern "C" sqlite3_vfs* get_sqlite3_noop_vfs(void)
 {
   static sqlite3_vfs noop_file_system = {
     1,                      // iVersion 
@@ -125,7 +123,6 @@ extern "C" void sqlite3_noop_vfs(void)
     noop_file_open,           // xOpen 
     noop_file_delete,         // xDelete 
     noop_file_access,         // xAccess 
-    noop_file_get_tempname,    // xGetTempName 
     noop_file_full_pathname,  // xFullPathname 
     0,                  // xDlOpen 
     0,                  // xDlError 
@@ -133,7 +130,8 @@ extern "C" void sqlite3_noop_vfs(void)
     0,                  // xDlClose 
     noop_file_randomness,     // xRandomness 
     noop_file_sleep,          // xSleep 
-    noop_file_current_time    // xCurrentTime 
+    noop_file_current_time,   // xCurrentTime 
+    noop_file_get_last_error  // xGetLastError
   };
-  sqlite3_vfs_register(&noop_file_system, 1);
+  return &noop_file_system;
 }
