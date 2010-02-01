@@ -2,11 +2,13 @@
 //
 // Copyright (c) 2008 Vorne Industries
 //
-// $Id: threadx_mutex.cpp 1.2 2008/12/02 20:56:36Z phowell Exp $
+// $Id: threadx_mutex.cpp 1.3 2009/03/13 17:19:45Z phowell Exp $
 //
 // VERSION HISTORY
 // ---------------
 // $Log: threadx_mutex.cpp $
+// Revision 1.3  2009/03/13 17:19:45Z  phowell
+// Fix static-construction-ordering problem.
 // Revision 1.2  2008/12/02 20:56:36Z  phowell
 // Fix static initialization problems.
 // Revision 1.1  2008/04/10 18:14:04Z  phowell
@@ -37,18 +39,21 @@
 /// Mutex_Descriptor is a single array entry that describes a single sqlite mutex.  It's arrayed
 /// into mutex_array.  mutex_array_mutex is used to control access to the array.
 ///
+/// Note: sqlite3_threadx_mutex_initialize() may be called from a static constructor, and so
+/// Mutex_Descriptor should not be given a constructor, since static constructor order cannot be
+/// controlled.
+///
 ///-------------------------------------------------------------------------------------------------
 
 struct Mutex_Descriptor
 {
     enum { UNUSED_MUTEX = 0xFF };
 
-    Mutex_Descriptor() : mutex(), mutex_id(UNUSED_MUTEX) {}
     TX_MUTEX mutex;
     uint8_t mutex_id;
 };
 
-static Mutex_Descriptor mutex_array[10];
+static Mutex_Descriptor mutex_array[10] = { 0 };
 enum { MUTEX_ARRAY_LENGTH = sizeof(mutex_array) / sizeof(*mutex_array) };
 
 static TX_MUTEX mutex_array_mutex;
@@ -75,11 +80,12 @@ void sqlite3_threadx_mutex_initialize()
 
     for (int i = 0; i < sizeof(mutex_array) / sizeof(*mutex_array); ++i)
     {
-        mutex_array[i] = Mutex_Descriptor();
+        mutex_array[i].mutex_id = Mutex_Descriptor::UNUSED_MUTEX;
+        
         if (i >= SQLITE_MUTEX_STATIC_MASTER && i <= SQLITE_MUTEX_STATIC_LRU)
         {
             mutex_array[i].mutex_id = i;
-            tx_mutex_create(&mutex_array[i].mutex, "", TX_INHERIT);
+            tx_mutex_create(&mutex_array[i].mutex, "sqlite3 specific", TX_INHERIT);
         }
     }
 
