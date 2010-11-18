@@ -19,8 +19,11 @@ LONG_VERSION = 3.6.19.2
 SHORT_VERSION = 3.6.19
 RELEASE_VERSION = 03.06.19
 
+DIR_NAME = common/sqlite3
+CHECKPOINT_DIR_NAME = $(SVN_ROOT)/$(DIR_NAME)/tags/$(LONG_VERSION)
+
 checkpoint:
-        $(SVN) copy -m $(LONG_VERSION) $(SVN_ROOT)/$(DIR_NAME)/trunk $(CHECKPOINT_DIR_NAME)
+	$(SVN) copy -m $(LONG_VERSION) $(SVN_ROOT)/$(DIR_NAME)/trunk $(CHECKPOINT_DIR_NAME)
 
 
 .PHONY: checkpoint
