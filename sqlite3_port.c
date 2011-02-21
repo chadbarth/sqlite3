@@ -33,7 +33,8 @@ void vorne_xl_sqlite3_port_init(void)
 		initialized = 1;
 		// Configure SQLite's internal heap. The smallest allocation allowed is 4 bytes.
 		//
-		sqlite3_config(SQLITE_CONFIG_HEAP, sqlite_memory_buffer, sizeof(sqlite_memory_buffer), 4);
+		sqlite3_config(SQLITE_CONFIG_HEAP, sqlite_memory_buffer, sizeof(sqlite_memory_buffer), 
+		               sizeof(sqlite_memory_buffer[0]));
 	
 		// Set up the mutex implementation
 		//

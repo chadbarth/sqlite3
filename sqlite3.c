@@ -45,6 +45,14 @@
 #ifndef _SQLITEINT_H_
 #define _SQLITEINT_H_
 
+void maybe_hang(void* p)
+{
+    static volatile  int allow_hang = 1;
+    if (allow_hang && !(p == 0 || p > (void*) 0xb0000000))
+    {
+      for(;;);
+    }    
+}
 /*
 ** These #defines should enable >2GB file support on POSIX if the
 ** underlying operating system supports it.  If the OS lacks
@@ -13979,14 +13987,19 @@ static void memsys5Unlink(int i, int iLogsize){
   assert( iLogsize>=0 && iLogsize<=LOGMAX );
   assert( (mem5.aCtrl[i] & CTRL_LOGSIZE)==iLogsize );
 
+  maybe_hang(MEM5LINK(i));
   next = MEM5LINK(i)->next;
   prev = MEM5LINK(i)->prev;
   if( prev<0 ){
+    maybe_hang(MEM5LINK(next));
     mem5.aiFreelist[iLogsize] = next;
   }else{
+    maybe_hang(MEM5LINK(next));
+    maybe_hang(MEM5LINK(prev));
     MEM5LINK(prev)->next = next;
   }
   if( next>=0 ){
+    maybe_hang(MEM5LINK(prev));
     MEM5LINK(next)->prev = prev;
   }
 }
@@ -14001,6 +14014,9 @@ static void memsys5Link(int i, int iLogsize){
   assert( i>=0 && i<mem5.nBlock );
   assert( iLogsize>=0 && iLogsize<=LOGMAX );
   assert( (mem5.aCtrl[i] & CTRL_LOGSIZE)==iLogsize );
+
+  maybe_hang(MEM5LINK(i));
+  maybe_hang(MEM5LINK(mem5.aiFreelist[iLogsize]));
 
   x = MEM5LINK(i)->next = mem5.aiFreelist[iLogsize];
   MEM5LINK(i)->prev = -1;
@@ -14050,6 +14066,7 @@ static int memsys5UnlinkFirst(int iLogsize){
   i = iFirst = mem5.aiFreelist[iLogsize];
   assert( iFirst>=0 );
   while( i>0 ){
+    maybe_hang(MEM5LINK(i));
     if( i<iFirst ) iFirst = i;
     i = MEM5LINK(i)->next;
   }
@@ -14128,6 +14145,8 @@ static void *memsys5MallocUnsafe(int nByte){
 static void memsys5FreeUnsafe(void *pOld){
   u32 size, iLogsize;
   int iBlock;
+
+  maybe_hang(pOld);
 
   /* Set iBlock to the index of the block pointed to by pOld in 
   ** the array of mem5.szAtom byte blocks pointed to by mem5.zPool.
@@ -16093,6 +16112,9 @@ SQLITE_API void sqlite3_free(void *p){
 ** connection.
 */
 SQLITE_PRIVATE void sqlite3DbFree(sqlite3 *db, void *p){
+
+    maybe_hang(p);
+
   assert( db==0 || sqlite3_mutex_held(db->mutex) );
   if( isLookaside(db, p) ){
     LookasideSlot *pBuf = (LookasideSlot*)p;
@@ -16212,6 +16234,9 @@ SQLITE_PRIVATE void *sqlite3DbMallocRaw(sqlite3 *db, int n){
     }
     if( db->lookaside.bEnabled && n<=db->lookaside.sz
          && (pBuf = db->lookaside.pFree)!=0 ){
+      maybe_hang(db->lookaside.pFree);
+      maybe_hang(pBuf->pNext);
+
       db->lookaside.pFree = pBuf->pNext;
       db->lookaside.nOut++;
       if( db->lookaside.nOut>db->lookaside.mxOut ){
@@ -46306,6 +46331,8 @@ SQLITE_PRIVATE int sqlite3VdbeMemFinalize(Mem *pMem, FuncDef *pFunc){
     ctx.s.db = pMem->db;
     ctx.pMem = pMem;
     ctx.pFunc = pFunc;
+    maybe_hang(pFunc);
+    maybe_hang(pMem);
     pFunc->xFinalize(&ctx);
     assert( 0==(pMem->flags&MEM_Dyn) && !pMem->xDel );
     sqlite3DbFree(pMem->db, pMem->zMalloc);
@@ -94917,6 +94944,7 @@ static int setupLookaside(sqlite3 *db, void *pBuf, int sz, int cnt){
       p->pNext = db->lookaside.pFree;
       db->lookaside.pFree = p;
       p = (LookasideSlot*)&((u8*)p)[sz];
+      maybe_hang(p);
     }
     db->lookaside.pEnd = p;
     db->lookaside.bEnabled = 1;
