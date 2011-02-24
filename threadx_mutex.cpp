@@ -1,20 +1,6 @@
 //--------------------------------------------------------------------------------------------------
 //
-// Copyright (c) 2008 Vorne Industries
-//
-// $Id: threadx_mutex.cpp 1.4 2009/10/28 20:28:32Z phowell Exp $
-//
-// VERSION HISTORY
-// ---------------
-// $Log: threadx_mutex.cpp $
-// Revision 1.4  2009/10/28 20:28:32Z  phowell
-// Changes from 3.5.3 to 3.6.19 required port changes.
-// Revision 1.3  2009/03/13 17:19:45Z  phowell
-// Fix static-construction-ordering problem.
-// Revision 1.2  2008/12/02 20:56:36Z  phowell
-// Fix static initialization problems.
-// Revision 1.1  2008/04/10 18:14:04Z  phowell
-// Initial revision
+// Copyright (c) 2009 - 2011 Vorne Industries
 //
 //--------------------------------------------------------------------------------------------------
 
@@ -34,8 +20,25 @@
 #include <stdint.h>
 #include <sqlite3.h>
 #include <tx_api.h>
+#include <tx_thread.h>
+#include <tx_initialize.h>
 #include <sqlite3_port.h>
 
+static volatile bool il_allow_hang = 1;
+
+#ifdef SQLITE_DEBUG
+void il_assert(bool good)
+{
+    while (!good && il_allow_hang);
+}
+#else
+#define il_assert(x)
+#endif
+
+bool during_initialization()
+{
+    return _tx_thread_system_state <= TX_INITIALIZE_IN_PROGRESS;
+}
 ///-------------------------------------------------------------------------------------------------
 ///
 /// Mutex_Descriptor is a single array entry that describes a single sqlite mutex.  It's arrayed
@@ -55,10 +58,22 @@ struct Mutex_Descriptor
     uint8_t mutex_id;
 };
 
-static Mutex_Descriptor mutex_array[20] = { 0 };
+static Mutex_Descriptor mutex_array[200] = { 0 };
 enum { MUTEX_ARRAY_LENGTH = sizeof(mutex_array) / sizeof(*mutex_array) };
 
 static TX_MUTEX mutex_array_mutex;
+
+
+static void lock_list()
+{
+    UINT status = tx_mutex_get(&mutex_array_mutex, TX_WAIT_FOREVER);
+    il_assert(status == TX_SUCCESS || (during_initialization() && status == TX_WAIT_ERROR));    
+}
+
+static void unlock_list()
+{
+    tx_mutex_put(&mutex_array_mutex);    
+}
 
 
 ///-------------------------------------------------------------------------------------------------
@@ -73,17 +88,20 @@ static int threadx_mutex_initialize()
     static bool mutex_array_prepared = false;
     if (mutex_array_prepared == false)
     {    
-        tx_mutex_create(&mutex_array_mutex, "sqlite3 global", TX_INHERIT);
+        UINT status = tx_mutex_create(&mutex_array_mutex, "sqlite3 global", TX_INHERIT);
+        il_assert(status == TX_SUCCESS);
     
-        for (int i = 0; i < sizeof(mutex_array) / sizeof(*mutex_array); ++i)
+        for (int i = 0; i < MUTEX_ARRAY_LENGTH; ++i)
         {
             mutex_array[i].mutex_id = Mutex_Descriptor::UNUSED_MUTEX;
                 
             if (i >= SQLITE_MUTEX_STATIC_MASTER && i <= SQLITE_MUTEX_STATIC_LRU)
             {
                 mutex_array[i].mutex_id = i;
-                tx_mutex_create(&mutex_array[i].mutex, "sqlite3 specific", TX_INHERIT);
             }
+            
+            UINT status = tx_mutex_create(&mutex_array[i].mutex, "sqlite3 specific", TX_INHERIT);
+            il_assert(status == TX_SUCCESS);
         }
     }
     mutex_array_prepared = true;
@@ -142,17 +160,18 @@ static sqlite3_mutex *threadx_mutex_alloc(int mutex_id)
     //
     else for (int i = 0; i < MUTEX_ARRAY_LENGTH && return_mutex == 0; ++i)
     {
-        tx_mutex_get(&mutex_array_mutex, TX_WAIT_FOREVER);
+        lock_list();
         if (mutex_array[i].mutex_id == Mutex_Descriptor::UNUSED_MUTEX)
         {
             mutex_array[i].mutex_id = mutex_id;
             return_mutex = &mutex_array[i];
         }
-        tx_mutex_put(&mutex_array_mutex);
+        unlock_list();
     }
     
     return reinterpret_cast<sqlite3_mutex*>(return_mutex);
 }
+
 
 ///-------------------------------------------------------------------------------------------------
 ///
@@ -166,10 +185,9 @@ static void threadx_mutex_free(sqlite3_mutex* sqlite_mutex)
 {
     Mutex_Descriptor* mutex = reinterpret_cast<Mutex_Descriptor*>(sqlite_mutex);
     
-    tx_mutex_get(&mutex_array_mutex, TX_WAIT_FOREVER);
+    lock_list();
     mutex->mutex_id = Mutex_Descriptor::UNUSED_MUTEX;
-    tx_mutex_delete(&mutex->mutex);
-    tx_mutex_put(&mutex_array_mutex);
+    unlock_list();
 }
 
 ///-------------------------------------------------------------------------------------------------
@@ -189,7 +207,8 @@ static void threadx_mutex_enter(sqlite3_mutex* sqlite_mutex)
     Mutex_Descriptor* mutex = reinterpret_cast<Mutex_Descriptor*>(sqlite_mutex);
 
     UINT status = tx_mutex_get(&mutex->mutex, TX_WAIT_FOREVER);
-// [XXX]   check_assertion(status == TX_SUCCESS);
+
+    il_assert(status == TX_SUCCESS || (during_initialization() && status == TX_WAIT_ERROR));
 }
 
 ///-------------------------------------------------------------------------------------------------
@@ -207,7 +226,7 @@ static int threadx_mutex_try(sqlite3_mutex* sqlite_mutex)
     Mutex_Descriptor* mutex = reinterpret_cast<Mutex_Descriptor*>(sqlite_mutex);
 
     UINT status = tx_mutex_get(&mutex->mutex, TX_NO_WAIT);
-// [XXX]   check_assertion(status == TX_SUCCESS || status == TX_NOT_AVAILABLE);
+    il_assert(status == TX_SUCCESS || status == TX_NOT_AVAILABLE);
 
     return status == TX_NOT_AVAILABLE ? SQLITE_BUSY : SQLITE_OK;
 }
