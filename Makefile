@@ -51,10 +51,19 @@ PROJECTFLAGS =  -DSQLITE_OS_OTHER=1
 PROJECTFLAGS += -DSQLITE_ENABLE_MEMSYS5
 PROJECTFLAGS += -I$(THREADX_DIR)
 
+
 # Defining THREADSAFE and MUTEX_NOOP lets us define our own mutexes.
 #
 PROJECTFLAGS += -DSQLITE_THREADSAFE=1
 PROJECTFLAGS += -DSQLITE_MUTEX_NOOP=1
+
+PROJECTFLAGS += -O2
+
+# These are debugging flags. We don't typically need to do much debugging in here, so we 
+# don't allow an automatic way to set them.
+#
+# PROJECTFLAGS += -DSQLITE_DEBUG=1
+# PROJECTFLAGS += -O0
 
 PROJ_DIR = .
 SOURCE_DIR = $(PROJ_DIR)/.
