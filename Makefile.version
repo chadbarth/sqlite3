@@ -1,29 +1,14 @@
 ##############################################################################
 #
-# This file defines the Vorne internal version numbers for the SQLite library.
-# It is intended to be included by a larger Makefile or parsed directly by a 
-# tool.
+# Makefile.version
 #
-# $Id: Makefile.version 1.6 2009/10/28 20:35:49Z phowell Exp $
-#
-# This file does not have a version history, since it usually consists of 
-# 'incremented version number' or something similar.  The revision history
-# may be viewed in source control.
-# 
 ##############################################################################
 
 # These are ACTUAL sqlite version numbers; the 'build' number in LONG_VERSION is an internal
 # version number.
 # 
-LONG_VERSION = 3.6.19.3
+LONG_VERSION = 3.6.19.4
 SHORT_VERSION = 3.6.19
 RELEASE_VERSION = 03.06.19
 
-checkpoint:
-	$(GIT) tag $(LONG_VERSION)
-	$(GIT) push --tags origin master
-
-
-
-.PHONY: checkpoint
-
+BRANCH = master

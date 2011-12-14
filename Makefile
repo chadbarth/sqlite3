@@ -7,25 +7,12 @@
 # Include a list of projects we depend on, and the rules to build that file.
 # Makefile.projects.mk will define BUILD_DIR
 #
--include ../build-internal/Makefile.projectlist.mk
--include ./Makefile.projects.mk
-
-# We, and our dependent projects, expect BUILD_DIR, not BUILD-INTERNAL_DIR.  So re-map it.
-#
-# [pkh] This needs to be re-thought -- there are variable evalution problems that wind
-# up creating circular dependencies.  For now, hard-map to ../build-internal
-#
-#BUILD_DIR ?= $(BUILD-INTERNAL_DIR)
 BUILD_DIR ?= ../build-internal
+PROJECT_DIR = .
 export BUILD_DIR
 
-# Include global helper rules and definitions
-#
--include $(BUILD_DIR)/Makefile.functions.mk
+-include $(BUILD_DIR)/Makefile.base.mk
 
-# Include version numbers; this defines XL_VERSION and XL_VERSION_SHORT
-#
--include ./Makefile.version
 
 # Only use implicit rules created in this file.
 #
@@ -39,11 +26,6 @@ export BUILD_DIR
 
 ######################################################################################
 ### Local information
-
-ifeq ($(THREADX_DIR), )
-THREADX_DIR = ../threadx
-$(warning No ThreadX directory specified, using $(THREADX_DIR))
-endif
 
 PROJECT_BASE_NAME = sqlite3
 
