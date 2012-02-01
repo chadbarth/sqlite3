@@ -12,15 +12,15 @@
 # 
 ##############################################################################
 
-# These are ACTUAL sqlite version numbers; the 'build' number in LONG_VERSION is an internal
+# These are ACTUAL sqlite version numbers; the 'build' number in LONG_VERSION = 3.7.5.2
 # version number.
 # 
-LONG_VERSION = 3.7.5.1
+LONG_VERSION = 3.7.5.2
 SHORT_VERSION = 3.7.5
 RELEASE_VERSION = 03.07.05
 
 checkpoint:
-	$(GIT) tag $(LONG_VERSION)
+	$(GIT) tag $(LONG_VERSION = 3.7.5.2
 	$(GIT) push --tags origin master
 
 .PHONY: checkpoint
