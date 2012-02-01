@@ -1,8 +1,0 @@
-<!-- This XML file describes all the projects this project depends on, along with the version of that
-project currently in use.  See ../build-internal/projectlist.xml for more information  -->
-
-<project-list>
-    <project type="build" version="0.9.0.3" name="threadx" tag="threadx" location="O:/Eng/Arm Firmware/ThreadX/project.pj" />
-    <project type="build" version="0.6.0.1" name="rvct" tag="rvct" location="https://server:8555/svn/common/rvct" />
-    <project type="build" version="0.7.0.1" name="build-internal" tag="build-internal" location="https://server:8555/svn/common/build" />
-</project-list>

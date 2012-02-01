@@ -1,0 +1,4 @@
+Makefile.projects.mk
+depend/
+objs/
+sqlite3.a
