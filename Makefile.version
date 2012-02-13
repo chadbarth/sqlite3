@@ -7,7 +7,7 @@
 # These are ACTUAL sqlite version numbers; the 'build' number in LONG_VERSION is an internal
 # version number.
 # 
-LONG_VERSION = 3.6.19.12
+LONG_VERSION = 3.6.19.13
 SHORT_VERSION = 3.6.19
 RELEASE_VERSION = 03.06.19
 
