@@ -1,0 +1,6 @@
+<!-- This XML file describes all the projects this project depends on, along with the version of that
+project currently in use.  See ../build-internal/projectlist.xml for more information  -->
+
+<project-list>
+    <project name="threadx" location="common/threadx" />
+</project-list>
