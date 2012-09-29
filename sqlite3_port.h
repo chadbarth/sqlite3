@@ -36,7 +36,7 @@ extern "C"
 ///
 ///-------------------------------------------------------------------------------------------------
 
-#define SQLITE_MEMORY_SIZE (4 * 1024 * 1024)
+#define SQLITE_MEMORY_SIZE (6 * 1024 * 1024)
 
 sqlite3_vfs* get_sqlite3_noop_vfs(void);
 sqlite3_mutex_methods* get_sqlite3_threadx_mutex_methods_object(void);
