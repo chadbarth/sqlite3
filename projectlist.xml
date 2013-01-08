@@ -2,5 +2,5 @@
 project currently in use.  See ../build-internal/projectlist.xml for more information  -->
 
 <project-list>
-    <project version="release" name="threadx" location="common/threadx" />
+    <project name="threadx" location="common/threadx" />
 </project-list>
