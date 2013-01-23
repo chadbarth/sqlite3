@@ -36,7 +36,10 @@ extern "C"
 ///
 ///-------------------------------------------------------------------------------------------------
 
-#define SQLITE_MEMORY_SIZE (6 * 1024 * 1024)
+// Bumping this to 10MB for DE900. Technically, the old value (6) should be fine, but the 
+// highwater with large number of Timeline Records is 4.5MB, so a little extra room shouldn't
+// hurt. -CEB
+#define SQLITE_MEMORY_SIZE (10 * 1024 * 1024)
 
 sqlite3_vfs* get_sqlite3_noop_vfs(void);
 sqlite3_mutex_methods* get_sqlite3_threadx_mutex_methods_object(void);
