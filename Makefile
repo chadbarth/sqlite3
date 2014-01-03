@@ -44,3 +44,10 @@ SOURCE_DIR = $(PROJ_DIR)/.
 INCLUDE_DIR = $(PROJ_DIR)/.
 
 -include $(BUILD_DIR)/Makefile.library.mk
+
+#
+# 61 integer operation result is out of range
+# 177 variable "x" was declared but never referenced
+# 550 variable "x" was set but never used
+#
+CFLAGS += --diag_suppress=61,177,550
