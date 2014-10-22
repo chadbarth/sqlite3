@@ -15,9 +15,10 @@ PROJECT_BASE_NAME = sqlite3
 
 # 61 integer operation result is out of range
 # 177 variable "x" was declared but never referenced
+# 222 floating-point operation result is out of range
 # 550 variable "x" was set but never used
 #
-CFLAGS += --diag_suppress=61,177,550
+CFLAGS += --diag_suppress=61,177,222,550
 
 PROJECTFLAGS += -DSQLITE_OS_OTHER=1
 PROJECTFLAGS += -DSQLITE_ENABLE_MEMSYS3
