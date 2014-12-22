@@ -13,12 +13,11 @@ export BUILD_DIR
 
 PROJECT_BASE_NAME = sqlite3
 
-# 61 integer operation result is out of range
-# 177 variable "x" was declared but never referenced
-# 222 floating-point operation result is out of range
-# 550 variable "x" was set but never used
-#
-CFLAGS += --diag_suppress=61,177,222,550
+#  177-D: variable "ii" was declared but never referenced
+#  222-D: floating-point operation result is out of range
+#  550-D: variable "nPageHeader" was set but never used
+# 1293-D: assignment in condition
+DIAGFLAGS += --diag_remark=177,222,550,1293
 
 PROJECTFLAGS += -DSQLITE_OS_OTHER=1
 PROJECTFLAGS += -DSQLITE_ENABLE_MEMSYS3
@@ -31,4 +30,3 @@ PROJECTFLAGS += -DSQLITE_THREADSAFE=1
 PROJECTFLAGS += -DSQLITE_MUTEX_NOOP=1
 
 -include $(BUILD_DIR)/Makefile.library.mk
-
