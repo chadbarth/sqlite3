@@ -17,7 +17,9 @@ PROJECT_BASE_NAME = sqlite3
 #  222-D: floating-point operation result is out of range
 #  550-D: variable "nPageHeader" was set but never used
 # 1293-D: assignment in condition
-DIAGFLAGS += --diag_remark=177,222,550,1293
+# C3017W: XXXX may be used before being set
+#
+DIAGFLAGS += --diag_remark=177,222,550,1293,3017
 
 PROJECTFLAGS += -DSQLITE_OS_OTHER=1
 PROJECTFLAGS += -DSQLITE_ENABLE_MEMSYS3
