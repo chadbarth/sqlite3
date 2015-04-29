@@ -4,31 +4,46 @@
 #
 ####################################################################################################
 
-BUILD_DIR ?= ../build-internal
-export BUILD_DIR
--include $(BUILD_DIR)/Makefile.base.mk
+include $(BUILD_DIR)/makefile.d/base.mk
 
-######################################################################################
-### Local information
+################################################################################
+## Internals ###################################################################
+################################################################################
+SQLITE3_DIR := .
+SQLITE3_LIB_NAME := libsqlite3.a
+SILENCE_WARNINGS := -Wno-deprecated-declarations
 
-PROJECT_BASE_NAME = sqlite3
+SQLITE3_LIBRARY := $(OUTPUT_DIR)/$(SQLITE3_LIB_NAME)
 
-#  177-D: variable "ii" was declared but never referenced
-#  222-D: floating-point operation result is out of range
-#  550-D: variable "nPageHeader" was set but never used
-# 1293-D: assignment in condition
-# C3017W: XXXX may be used before being set
-#
-DIAGFLAGS += --diag_remark=177,222,550,1293,3017
+SQLITE3_FILES = $(shell find . -name "*.c" -or -name "*.h")
+SQLITE3_FILES += Makefile
 
-PROJECTFLAGS += -DSQLITE_OS_OTHER=1
-PROJECTFLAGS += -DSQLITE_ENABLE_MEMSYS3
-PROJECTFLAGS += -DSQLITE_DEFAULT_TEMP_CACHE_SIZE=2000
-PROJECTFLAGS += -I$(THREADX_DIR)
+################################################################################
+## SQLite3 Target ##############################################################
+################################################################################
+$(SQLITE3_LIBRARY): $(SQLITE3_FILES)
 
-# Defining THREADSAFE and MUTEX_NOOP lets us define our own mutexes.
-#
-PROJECTFLAGS += -DSQLITE_THREADSAFE=1
-PROJECTFLAGS += -DSQLITE_MUTEX_NOOP=1
+	@if [[ ! -d $(SQLITE3_DIR) ]] ;            \
+	then                                       \
+	    echo "$(SQLITE3_DIR) not found" ;      \
+	    exit 1 ;                               \
+	fi
 
--include $(BUILD_DIR)/Makefile.library.mk
+	@echo Building SQLite3 library...
+	@mkdir -p $(dir $@)
+	$(VERBOSE)clang $(CFLAGS) -g -static -c -o $@ $(SILENCE_WARNINGS) -I. sqlite3.c
+
+	@if [[ ! -e $(SQLITE3_LIBRARY) ]] ;                 \
+	then                                                \
+	    echo "Failed to generate $(SQLITE3_LIBRARY)" ;  \
+	    exit 1 ;                                        \
+	fi
+
+	@echo Done building SQLite3.
+	@echo 
+
+sqlite3: $(SQLITE3_LIBRARY)
+all: sqlite3
+
+clean:
+	rm -rf $(OUTPUT_DIR)
