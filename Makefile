@@ -31,7 +31,7 @@ $(SQLITE3_LIBRARY): $(SQLITE3_FILES)
 
 	@echo Building SQLite3 library...
 	@mkdir -p $(dir $@)
-	$(VERBOSE)clang $(CFLAGS) -g -static -c -o $@ $(SILENCE_WARNINGS) -I. sqlite3.c
+	$(VERBOSE)$(CC) $(CFLAGS) -g -static -c -o $@ $(SILENCE_WARNINGS) -I. sqlite3.c
 
 	@if [[ ! -e $(SQLITE3_LIBRARY) ]] ;                 \
 	then                                                \
