@@ -1,4 +1,5 @@
 Makefile.projects.mk
+*_build
 depend/
 objs/
 sqlite3.a
