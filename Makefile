@@ -19,6 +19,9 @@ SQLITE3_LIBRARY := $(OUTPUT_DIR)/$(SQLITE3_LIB_NAME)
 SQLITE3_FILES = $(shell find . -name "*.c" -or -name "*.h")
 SQLITE3_FILES += Makefile
 
+# From http://beets.io/blog/sqlite-nightmare.html
+CFLAGS += -DHAVE_USLEEP=1
+
 ################################################################################
 ## SQLite3 Target ##############################################################
 ################################################################################
