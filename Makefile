@@ -14,7 +14,10 @@ SQLITE3_DIR := .
 SQLITE3_LIB_NAME := libsqlite3.a
 SILENCE_WARNINGS := -Wno-deprecated-declarations
 
-SQLITE3_LIBRARY := $(OUTPUT_DIR)/$(SQLITE3_LIB_NAME)
+# Fall back to OUTPUT_DIR. Keeps this build working if there is a mismatch with the xl repo.
+LIBRARY_OUTPUT_DIR ?= $(OUTPUT_DIR)
+
+SQLITE3_LIBRARY := $(LIBRARY_OUTPUT_DIR)/$(SQLITE3_LIB_NAME)
 
 SQLITE3_FILES = $(shell find . -name "*.c" -or -name "*.h")
 SQLITE3_FILES += Makefile
@@ -44,10 +47,10 @@ $(SQLITE3_LIBRARY): $(SQLITE3_FILES)
 	fi
 
 	@echo Done building SQLite3.
-	@echo 
+	@echo
 
 sqlite3: $(SQLITE3_LIBRARY)
 all: sqlite3
 
 clean:
-	rm -rf $(OUTPUT_DIR)
+	rm -rf $(LIBRARY_OUTPUT_DIR)
