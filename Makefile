@@ -54,3 +54,6 @@ all: sqlite3
 
 clean:
 	rm -rf $(LIBRARY_OUTPUT_DIR)
+
+cleanall: clean
+	rm -rf build
