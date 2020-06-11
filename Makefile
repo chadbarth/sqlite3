@@ -24,6 +24,7 @@ SQLITE3_FILES += Makefile
 
 # From http://beets.io/blog/sqlite-nightmare.html
 CFLAGS += -DHAVE_USLEEP=1
+CFLAGS += -DSQLITE_ENABLE_FTS5
 
 ################################################################################
 ## SQLite3 Target ##############################################################
